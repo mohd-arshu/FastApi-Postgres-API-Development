@@ -1,16 +1,20 @@
-from fastapi import FastAPI
+from fastapi import FastAPI , Depends
 from pydantic import BaseModel
 from random import randint
 import psycopg
 from dotenv import load_dotenv
 import os
 from pathlib import Path
+import models
+from sqlalchemy.orm import Session
+from database import engine, get_db
 
+models.Base.metadata.create_all(bind=engine) 
 ###############################
-env_path = Path(__file__).resolve().parent / ".env"
-print(env_path)
 
-load_dotenv(env_path, override=True)
+
+
+load_dotenv()
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_NAME = os.getenv("DB_NAME")
@@ -18,11 +22,11 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 
 
-print("Host:", DB_HOST)
-print("Port:", DB_PORT)
-print("Database loaded:", bool(DB_NAME))
-print("User:", DB_USER)
-print("Password loaded:", bool(DB_PASSWORD))
+# print("Host:", DB_HOST)
+# print("Port:", DB_PORT)
+# print("Database loaded:", bool(DB_NAME))
+# print("User:", DB_USER)
+# print("Password loaded:", bool(DB_PASSWORD))
 
 
 try:
@@ -96,3 +100,8 @@ def delete_item(id: int):
     return {"message": "Item deleted successfully", "result": result}
 
 
+@app.get("/sqlquery")
+def test_sqlquery(db: Session = Depends(get_db)):
+    return {"Status"    : "Success" , "data": db.query(models.Sample_Ecom).all() }
+
+    
