@@ -5,28 +5,37 @@ import psycopg
 from dotenv import load_dotenv
 import os
 from pathlib import Path
-import models
+import models 
 from sqlalchemy.orm import Session
 from database import engine, get_db
+from models import SampleEcom
+# import csv
 
 models.Base.metadata.create_all(bind=engine) 
 ###############################
 
-
+# with open("sample_ecom.csv", "r") as file:
+#     reader = csv.DictReader(file)
+#     for row in reader:
+#         item = SampleEcom(
+#             name=row["name"],
+#             description=row["description"],
+#             ratings=int(row["ratings"])
+#         )
+#         with Session(engine) as session:
+#             session.add(item)
+#             session.commit()
 
 load_dotenv()
+
+
+##################################
+
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_NAME = os.getenv("DB_NAME")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
-
-
-# print("Host:", DB_HOST)
-# print("Port:", DB_PORT)
-# print("Database loaded:", bool(DB_NAME))
-# print("User:", DB_USER)
-# print("Password loaded:", bool(DB_PASSWORD))
 
 
 try:
@@ -42,6 +51,8 @@ except Exception as e:
     print("Error connecting to the database:", e)
 
 app = FastAPI()
+
+
 
 
 class Item(BaseModel):
@@ -73,11 +84,21 @@ def read_root():
     # Replace with your actual table name
 
 @app.post("/items/")
-def create_item(item: Item):
-    cursor.execute("INSERT INTO sample_ecom (name, description, ratings) VALUES (%s, %s, %s) RETURNING * " , (item.name, item.description, item.ratings))
-    result = cursor.fetchone()  # Fetch the result of the insert operation
-    conn.commit()
-    return {"message": "Item created successfully", "result": result}
+def create_item(sample:Item, db: Session = Depends(get_db)):
+    # print(**sample.model_dump())
+
+
+    # cursor.execute("INSERT INTO sample_ecom (name, description, ratings) VALUES (%s, %s, %s) RETURNING * " , (item.name, item.description, item.ratings))
+    # result = cursor.fetchone()  # Fetch the result of the insert operation
+    # conn.commit()
+    SammpleEcom = models.SampleEcom(**sample.model_dump())
+    
+
+    db.add(SammpleEcom)
+    db.commit()
+    db.refresh(SammpleEcom)
+
+    return {"message": "Item created successfully", "result": SammpleEcom}
       # Commit the transaction to save changes to the database
     # post_item = item.model_dump()
 
@@ -86,22 +107,26 @@ def create_item(item: Item):
     # return {"name": item.name, "description": item.description , "rating": item.rating , "id": post_item["id"]}
 
 @app.get("/items/{id}")
-def read_item(id: int):
+def read_item(id: int , db: Session = Depends(get_db)):
+    post_item = db.query(models.SampleEcom).filter(models.SampleEcom.id == id).first()
+    print(post_item)
+    return {"message": "Item retrieved successfully", "result": post_item}
     # print(type(id))
-    item = find_id((int(id)))
-    return {"data": item}
 
 @app.delete("/items/{id}")
-def delete_item(id: int):
-    cursor.execute("DELETE FROM sample_ecom WHERE id = %s RETURNING *", (str(id),))
-    result = cursor.fetchone()  # Fetch the result of the delete operation
-    conn.commit()  # Commit the transaction to save changes to the database
-
-    return {"message": "Item deleted successfully", "result": result}
+def delete_item(id: int , db: Session = Depends(get_db)):
+    item = db.query(models.SampleEcom).filter(models.SampleEcom.id == id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    db.delete(item)
+    db.commit()
+    return {"message": "Item deleted successfully", "result": item}
 
 
 @app.get("/sqlquery")
 def test_sqlquery(db: Session = Depends(get_db)):
-    return {"Status"    : "Success" , "data": db.query(models.Sample_Ecom).all() }
+    # return {"Status"    : "Success" , "data": db.query(models.Sample_Ecom).all() }
+    query = db.query(models.SampleEcom).all()
+    return {"Status"    : "Success" , "data": query }
 
     
