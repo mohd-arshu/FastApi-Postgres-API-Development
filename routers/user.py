@@ -8,9 +8,12 @@ from sqlalchemy.orm import Session
 from database import get_db
 import utils
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/users",
+    tags=["Users"]
+)
 
-@router.post("/Users",response_model=schema.emailresponse)
+@router.post("/",response_model=schema.emailresponse)
 def create_user(user: schema.schemauser, db: Session = Depends(get_db)):
     user.password = utils.password_hash(user.password)
     new_user = models.User(**user.model_dump())

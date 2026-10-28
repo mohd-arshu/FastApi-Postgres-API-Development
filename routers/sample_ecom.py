@@ -7,8 +7,12 @@ import models
 import psycopg 
 import os
 from dotenv import load_dotenv
+import Oauth2
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/items",
+    tags=["Items"]
+)
 load_dotenv()
 
 
@@ -41,8 +45,8 @@ def read_root():
 
     # Replace with your actual table name
 
-@router.post("/items/")
-def create_item(sample:schema.Item, db: Session = Depends(get_db)):
+@router.post("/",response_model=schema.Responsenew)
+def create_item(sample:schema.Item, db: Session = Depends(get_db), user_id: int=Depends(Oauth2.get_current_user) ):
     # print(**sample.model_dump())
 
 
@@ -51,7 +55,7 @@ def create_item(sample:schema.Item, db: Session = Depends(get_db)):
     # conn.commit()
     SammpleEcom = models.SampleEcom(**sample.model_dump())
     
-
+    print(user_id)
     db.add(SammpleEcom)
     db.commit()
     db.refresh(SammpleEcom)
@@ -64,14 +68,14 @@ def create_item(sample:schema.Item, db: Session = Depends(get_db)):
     # set.append(post_item)
     # return {"name": item.name, "description": item.description , "rating": item.rating , "id": post_item["id"]}
 
-@router.get("/items/{id}",response_model=schema.Response)
+@router.get("/{id}",response_model=schema.Response)
 def read_item(id: int , db: Session = Depends(get_db)):
     post_item = db.query(models.SampleEcom).filter(models.SampleEcom.id == id).first()
     print(post_item)
     return post_item
     # print(type(id))
 
-@router.delete("/items/{id}",response_model=schema.Response)
+@router.delete("/{id}",response_model=schema.Response)
 def delete_item(id: int , db: Session = Depends(get_db)):
     item = db.query(models.SampleEcom).filter(models.SampleEcom.id == id).first()
     if not item:
